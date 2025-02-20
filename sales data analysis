@@ -1,0 +1,83 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the sales dataset (Replace 'sales_data.csv' with your actual file)
+df = pd.read_csv("sales_data.csv")
+
+# Display basic info
+print(df.info())
+print(df.head())
+
+# Data Cleaning: Handling missing values
+# Fill missing Total_Sales with 0 and Customer_Count with the median
+if 'Total_Sales' in df.columns and 'Customer_Count' in df.columns:
+    df.fillna({'Total_Sales': 0, 'Customer_Count': df['Customer_Count'].median()}, inplace=True)
+
+# Convert date column to datetime format if it exists
+if 'Date' in df.columns:
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+    df.dropna(subset=['Date'], inplace=True)  # Drop rows where date conversion failed
+
+    # Extract useful time features
+    df['Year'] = df['Date'].dt.year
+    df['Month'] = df['Date'].dt.month_name()
+    df['Day'] = df['Date'].dt.day
+    df['Weekday'] = df['Date'].dt.day_name()
+
+# Summary statistics
+print(df.describe())
+
+# Total sales by year
+if 'Year' in df.columns and 'Total_Sales' in df.columns:
+    sales_by_year = df.groupby('Year')['Total_Sales'].sum()
+    plt.figure(figsize=(10, 5))
+    sales_by_year.plot(kind='bar', color='royalblue')
+    plt.title('Total Sales by Year')
+    plt.xlabel('Year')
+    plt.ylabel('Sales')
+    plt.show()
+
+# Monthly sales trend
+if 'Month' in df.columns and 'Total_Sales' in df.columns:
+    month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    df['Month'] = pd.Categorical(df['Month'], categories=month_order, ordered=True)
+    monthly_sales = df.groupby('Month')['Total_Sales'].sum().sort_index()
+    plt.figure(figsize=(12, 5))
+    sns.lineplot(x=monthly_sales.index, y=monthly_sales.values, marker='o', color='teal')
+    plt.xticks(rotation=45)
+    plt.title('Monthly Sales Trend')
+    plt.ylabel('Total Sales')
+    plt.grid()
+    plt.show()
+
+# Top 5 selling products
+if 'Product_Name' in df.columns and 'Total_Sales' in df.columns:
+    top_products = df.groupby('Product_Name')['Total_Sales'].sum().nlargest(5)
+    plt.figure(figsize=(10, 5))
+    top_products.plot(kind='barh', color='coral')
+    plt.title('Top 5 Selling Products')
+    plt.xlabel('Total Sales')
+    plt.ylabel('Product')
+    plt.show()
+
+# Sales distribution by weekday
+if 'Weekday' in df.columns and 'Total_Sales' in df.columns:
+    weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    plt.figure(figsize=(10, 5))
+    sns.barplot(x='Weekday', y='Total_Sales', data=df, estimator=np.sum, order=weekday_order, palette="coolwarm")
+    plt.title('Total Sales by Weekday')
+    plt.ylabel('Total Sales')
+    plt.show()
+
+# Customer behavior: Average sales per customer
+if 'Customer_Count' in df.columns and 'Total_Sales' in df.columns:
+    df['Avg_Sales_per_Customer'] = np.where(df['Customer_Count'] > 0, df['Total_Sales'] / df['Customer_Count'], 0)
+    plt.figure(figsize=(10, 5))
+    sns.histplot(df['Avg_Sales_per_Customer'], bins=30, kde=True, color='purple')
+    plt.title('Distribution of Average Sales per Customer')
+    plt.xlabel('Sales per Customer')
+    plt.show()
+
+print("Analysis Completed!")
